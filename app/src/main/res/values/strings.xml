@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_a_minute">+1分钟</string>
+    <string name="add_an_hour">+1小时</string>
+    <string name="add_half_an_hour">+30分钟</string>
+    <string name="add_ten_minutes">+10分钟</string>
+    <string name="add_timer">添加计时器</string>
+    <string name="androidx_startup">androidx.startup</string>
+    <string name="app_name">Timer</string>
+    <string name="app_name_placeholder">app name</string>
+    <string name="application_list">应用</string>
+    <string name="cancel">取消</string>
+    <string name="canceled">已取消</string>
+    <string name="deadline_placeholder">deadline</string>
+    <string name="exit">退出</string>
+    <string name="minutes">分钟</string>
+    <string name="ok">确定</string>
+    <string name="package_name_placeholder">package name</string>
+    <string name="remaining_minutes">%dm%ds</string>
+    <string name="remaining_seconds">%ds</string>
+    <string name="set_time_failed">定时失败</string>
+    <string name="set_time_success">将在%d分钟后关闭%s</string>
+    <string name="setting">设置</string>
+    <string name="stopped">已停止</string>
+    <string name="stopping_application">正在停止%s</string>
+    <string name="the_device_is_not_rooted">设备未Root</string>
+    <string name="the_task_is_canceled">任务已取消</string>
+    <string name="version_placeholder">version</string>
+    <string name="weather_cancel_timer">是否要取消定时</string>
+</resources>
