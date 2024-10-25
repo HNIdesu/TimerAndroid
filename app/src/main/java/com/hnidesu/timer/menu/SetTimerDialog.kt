@@ -27,8 +27,13 @@ class SetTimerDialog(ctx: Context, item: AppItem, listener: SetTimerListener):Di
             field=value
             mDialogSetTimerBinding?.secondPicker?.progress=value
         }
-    val timeout:Long
+    var timeout:Long
         get() = mHour*3600L+mMinute*60L+mSecond
+        set(value) {
+            mHour=(value/3600).toInt()
+            mMinute=((value%3600)/60).toInt()
+            mSecond=(value%60).toInt()
+        }
     interface SetTimerListener {
         fun onSetTimer(packageName: String, intervalInSeconds: Long): Boolean
     }

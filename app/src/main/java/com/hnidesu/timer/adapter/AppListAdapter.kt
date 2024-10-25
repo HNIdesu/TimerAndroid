@@ -14,6 +14,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
+import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.menu.SetTimerDialog
 import com.hnidesu.timer.menu.SetTimerDialog.SetTimerListener
 
@@ -143,8 +144,7 @@ class AppListAdapter(
         holder.mContentView.setOnClickListener { view: View? ->
             if (info.deadline == -1L) {
                 val dialog = SetTimerDialog(
-                    mContext, info,
-                    object:SetTimerListener {
+                    mContext, info, object:SetTimerListener {
                         override fun onSetTimer(packageName: String, intervalInSeconds: Long): Boolean {
                             return mTaskOperationListener.onAddTask(
                                 packageName,
@@ -152,7 +152,9 @@ class AppListAdapter(
                             )
                         }
                     }
-                )
+                ).also {
+                    it.timeout= SettingManager.getDefault(mContext).getLong("timeout",300)
+                }
                 dialog.show()
                 return@setOnClickListener
             }

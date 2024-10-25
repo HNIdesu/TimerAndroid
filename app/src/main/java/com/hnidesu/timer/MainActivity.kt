@@ -14,6 +14,7 @@ import com.hnidesu.timer.eventbus.AddTaskEvent
 import com.hnidesu.timer.eventbus.CancelTaskEvent
 import com.hnidesu.timer.eventbus.ListTaskEvent
 import com.hnidesu.timer.eventbus.TaskStatusEvent
+import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.service.TimerService
 import com.topjohnwu.superuser.Shell
 import org.greenrobot.eventbus.EventBus
@@ -102,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         val viewHolder = ViewHolder(object : TaskOperationListener {
             override fun onAddTask(packageName: String, timeout: Long): Boolean {
                 EventBus.getDefault().post(AddTaskEvent(packageName, timeout))
+                SettingManager.getDefault(this@MainActivity).edit().putLong("timeout",timeout).apply()
                 return true
             }
             override fun onCancelTask(packageName: String): Boolean {
