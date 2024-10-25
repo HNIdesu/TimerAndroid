@@ -12,17 +12,20 @@ import com.hnidesu.timer.eventbus.AddTaskEvent
 import com.hnidesu.timer.eventbus.CancelTaskEvent
 import com.hnidesu.timer.eventbus.ListTaskEvent
 import com.hnidesu.timer.eventbus.TaskStatusEvent
+import com.hnidesu.timer.manager.SettingManager
 import com.topjohnwu.superuser.Shell
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 class TimerService : Service() {
     private val mTaskList: HashMap<String, TimerTask> = HashMap()
     private var mScheduledExecutorService: ScheduledExecutorService? = null
+    private var mAutoShundownFuture: ScheduledFuture<*>? = null
 
     @Subscribe(threadMode = ThreadMode.POSTING)
     fun onMessageEvent(event: Any?) {
@@ -42,10 +45,23 @@ class TimerService : Service() {
                     EventBus.getDefault().post(TaskStatusEvent(event.packageName, TaskStatusEvent.Status.Completed, timeToStop))
                 }, event.timeoutInSeconds, TimeUnit.SECONDS))
                 mTaskList.put(event.packageName, timerTask)
+                EventBus.getDefault().post(TaskStatusEvent(event.packageName, TaskStatusEvent.Status.Running, timeToStop))
             }
             is TaskStatusEvent->{
                 if(event.status==TaskStatusEvent.Status.Completed)
                     mTaskList.remove(event.packageName)
+                if(mTaskList.isEmpty()){
+                    if(mAutoShundownFuture==null){
+                        mAutoShundownFuture=mScheduledExecutorService?.schedule({
+                            System.exit(0)
+                        }, SettingManager.getDefault(this).getLong("auto_shutdown_timeout",60*5),TimeUnit.SECONDS)
+                    }
+                }else{
+                    if(mAutoShundownFuture!=null){
+                        mAutoShundownFuture?.cancel(true)
+                        mAutoShundownFuture=null
+                    }
+                }
             }
             is CancelTaskEvent->{
                 if (mTaskList.containsKey(event.packageName)) {
