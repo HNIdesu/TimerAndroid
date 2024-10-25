@@ -24,7 +24,8 @@ import kotlin.concurrent.thread
 class MainActivity : AppCompatActivity(), ServiceConnection {
     private val mApplicationCollection = HashMap<String?, AppItem>()
     private val mApplicationList: MutableList<AppItem> = arrayListOf()
-    private val mTimer = Timer()
+    private var mTimer:Timer?=null
+    private var mTimerService:TimerService?=null
     private var mViewHolder: ViewHolder? = null
     private val mLoadPackageSemaphore=Semaphore(1)
 
@@ -53,27 +54,13 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
         mLoadPackageSemaphore.acquire()
         val timerService = (iBinder as LocalBinder).service
-        val task = object:TimerTask() {
-            override fun run() {
-                for (task in timerService.getRunningTasks()) {
-                    val item =
-                        mApplicationCollection[task.packageName]
-                    item!!.deadline = task.endTimeMs
-                    this@MainActivity.runOnUiThread {
-                        mViewHolder!!.mAppListAdapter.UpdateItem(
-                            item, listOf(UpdateOption.UpdateDeadline)
-                        )
-                    }
-                }
-            }
-        }
-        mTimer.scheduleAtFixedRate(task, 0L, 500L)
+        mTimerService=timerService
+        enableTimer()
         val viewHolder = ViewHolder(object : TaskOperationListener {
             override fun onAddTask(packageName: String, timeout: Long): Boolean {
                 timerService.addTask(packageName, timeout)
                 return true
             }
-
             override fun onCancelTask(packageName: String): Boolean {
                 timerService.cancelTask(packageName)
                 return true
@@ -85,8 +72,47 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     }
 
     override fun onServiceDisconnected(componentName: ComponentName) {
-        mTimer.cancel()
+        mTimerService=null
+        disableTimer()
         mLoadPackageSemaphore.release()
+    }
+
+    private fun enableTimer(){
+        if(mTimer!=null)
+            return
+        mTimer=Timer().also {
+            it.schedule(object:TimerTask() {
+                override fun run() {
+                    val runningTasks = mTimerService?.getRunningTasks() ?: return
+                    for (task in runningTasks) {
+                        val item = mApplicationCollection[task.packageName]
+                        item!!.deadline = task.endTimeMs
+                        this@MainActivity.runOnUiThread {
+                            mViewHolder!!.mAppListAdapter.UpdateItem(
+                                item, listOf(UpdateOption.UpdateDeadline)
+                            )
+                        }
+                    }
+                }
+            }, 0L, 500L)
+        }
+    }
+
+    private fun disableTimer(){
+        if(mTimer!=null){
+            mTimer?.cancel()
+            mTimer=null
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        disableTimer()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        enableTimer()
     }
 
     public override fun onDestroy() {
