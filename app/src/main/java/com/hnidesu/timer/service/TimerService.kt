@@ -4,115 +4,79 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.os.Binder
 import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
 import android.os.IBinder
-import android.os.Looper
-import android.os.Message
 import androidx.core.app.NotificationCompat
 import com.hnidesu.timer.component.TimerTask
+import com.hnidesu.timer.eventbus.AddTaskEvent
+import com.hnidesu.timer.eventbus.CancelTaskEvent
+import com.hnidesu.timer.eventbus.ListTaskEvent
+import com.hnidesu.timer.eventbus.TaskStatusEvent
 import com.topjohnwu.superuser.Shell
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
 class TimerService : Service() {
-    private var mHandler: MyHandler? = null
-    private var mWorkingThread: HandlerThread? = null
+    private val mTaskList: HashMap<String, TimerTask> = HashMap()
+    private var mScheduledExecutorService: ScheduledExecutorService? = null
 
-    class MyHandler(looper: Looper) : Handler(looper) {
-        private val mScheduledExecutorService: ScheduledExecutorService = Executors.newScheduledThreadPool(0)
-        val taskList: HashMap<String?, TimerTask> = HashMap()
-
-        override fun handleMessage(msg: Message) {
-            if (msg.what == 3321) {
-                val bundle = msg.obj as Bundle
-                val timeout = bundle.getLong("timeout")
-                val timeToStop = System.currentTimeMillis() + (timeout * 1000)
-                val packageName = bundle.getString("package_name")
-                synchronized(this.taskList) {
-                    if (taskList.containsKey(packageName) && !taskList.get(packageName)!!.scheduledFuture!!.isDone()) {
-                        taskList.get(packageName)!!.scheduledFuture!!.cancel(true)
+    @Subscribe(threadMode = ThreadMode.POSTING)
+    fun onMessageEvent(event: Any?) {
+        when(event){
+            is AddTaskEvent->{
+                val scheduledExecutorService=mScheduledExecutorService?:return
+                if (mTaskList.containsKey(event.packageName)) {
+                    mTaskList.get(event.packageName)!!.also { timerTask->
+                        if(!timerTask.scheduledFuture.isDone)
+                            timerTask.scheduledFuture.cancel(true)
                     }
                 }
-                val timerTask = TimerTask()
-                timerTask.scheduledFuture = mScheduledExecutorService.schedule(
-                    {
-                        Shell.cmd(String.format("am force-stop %s", packageName)).exec()
-                        synchronized(taskList) {
-                            taskList.remove(packageName)
+                val timeToStop = System.currentTimeMillis() + (event.timeoutInSeconds * 1000)
+                val timerTask = TimerTask(event.packageName, timeToStop,scheduledExecutorService.schedule(
+                {
+                    Shell.cmd(String.format("am force-stop %s", event.packageName)).exec()
+                    EventBus.getDefault().post(TaskStatusEvent(event.packageName, TaskStatusEvent.Status.Completed, timeToStop))
+                }, event.timeoutInSeconds, TimeUnit.SECONDS))
+                mTaskList.put(event.packageName, timerTask)
+            }
+            is TaskStatusEvent->{
+                if(event.status==TaskStatusEvent.Status.Completed)
+                    mTaskList.remove(event.packageName)
+            }
+            is CancelTaskEvent->{
+                if (mTaskList.containsKey(event.packageName)) {
+                    mTaskList.get(event.packageName)!!.also { timerTask->
+                        if(!timerTask.scheduledFuture.isDone){
+                            timerTask.scheduledFuture.cancel(true)
+                            EventBus.getDefault().post(TaskStatusEvent(event.packageName, TaskStatusEvent.Status.Canceled, timerTask.endTimeMs))
                         }
-                    }, timeout, TimeUnit.SECONDS
-                )
-                timerTask.packageName = packageName
-                timerTask.endTimeMs = timeToStop
-                synchronized(this.taskList) {
-                    taskList.put(packageName, timerTask)
+                        mTaskList.remove(event.packageName)
+                    }
                 }
-                return
             }
-            super.handleMessage(msg)
-        }
-    }
-
-    fun getRunningTasks(): List<TimerTask> {
-        val tasks: MutableList<TimerTask> = mutableListOf()
-        val taskList= mHandler?.taskList ?: return tasks
-        synchronized(taskList) {
-            for (entry in taskList)
-                tasks.add(entry.value)
-        }
-        return tasks
-    }
-
-    fun queryTask(packageName: String): TimerTask? {
-        val taskList= mHandler?.taskList ?: return null
-        synchronized(taskList) {
-            return if (taskList.containsKey(packageName))
-                taskList[packageName]
-            else null
-        }
-    }
-
-    override fun onBind(intent: Intent): IBinder {
-        return LocalBinder()
-    }
-
-    inner class LocalBinder : Binder() {
-        val service: TimerService
-            get() = this@TimerService
-    }
-
-    fun addTask(packageName: String, timeout: Long) {
-        val msg = Message()
-        msg.what = 3321
-        val bundle = Bundle()
-        bundle.putString("package_name", packageName)
-        bundle.putLong("timeout", timeout)
-        msg.obj = bundle
-        mHandler!!.sendMessage(msg)
-    }
-
-    fun cancelTask(packageName: String) {
-        val taskList= mHandler?.taskList ?: return
-        synchronized(taskList) {
-            if (taskList.containsKey(packageName)) {
-                taskList[packageName]?.scheduledFuture?.cancel(true)
-                taskList.remove(packageName)
+            is ListTaskEvent->{
+                for (entry in mTaskList.entries) {
+                    EventBus.getDefault().post(TaskStatusEvent(entry.key, TaskStatusEvent.Status.Running, entry.value.endTimeMs))
+                }
             }
         }
     }
+
 
     override fun onDestroy() {
-        val handlerThread = this.mWorkingThread
-        if (handlerThread != null && handlerThread.isAlive) {
-            mWorkingThread!!.looper.quit()
-        }
-        stopForeground(true)
         super.onDestroy()
+        stopForeground(true)
+        mTaskList.clear()
+        mScheduledExecutorService?.shutdown()
+        EventBus.getDefault().unregister(this)
+    }
+
+    override fun onBind(intent: Intent?): IBinder? {
+        throw NotImplementedError()
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -120,6 +84,7 @@ class TimerService : Service() {
     }
 
     override fun onCreate() {
+        super.onCreate()
         if (Build.VERSION.SDK_INT >= 26) {
             val channel = NotificationChannel(
                 CHANNELID,
@@ -132,14 +97,8 @@ class TimerService : Service() {
             manager.createNotificationChannel(channel)
         }
         startForeground(NOTIFICATIONID, NotificationCompat.Builder(this, CHANNELID).build())
-        this.mWorkingThread = object : HandlerThread("TimerThread") {
-            override fun onLooperPrepared() {
-                super.onLooperPrepared()
-                this@TimerService.mHandler = MyHandler(mWorkingThread!!.looper)
-            }
-        }.also {
-            it.start()
-        }
+        mScheduledExecutorService = Executors.newScheduledThreadPool(0)
+        EventBus.getDefault().register(this)
     }
 
     companion object {

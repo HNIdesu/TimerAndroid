@@ -1,11 +1,8 @@
 package com.hnidesu.timer
 
-import android.content.ComponentName
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.IBinder
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
@@ -13,68 +10,39 @@ import com.hnidesu.timer.adapter.AppListAdapter
 import com.hnidesu.timer.adapter.AppListAdapter.TaskOperationListener
 import com.hnidesu.timer.adapter.AppListAdapter.UpdateOption
 import com.hnidesu.timer.component.AppItem
+import com.hnidesu.timer.eventbus.AddTaskEvent
+import com.hnidesu.timer.eventbus.CancelTaskEvent
+import com.hnidesu.timer.eventbus.ListTaskEvent
+import com.hnidesu.timer.eventbus.TaskStatusEvent
 import com.hnidesu.timer.service.TimerService
-import com.hnidesu.timer.service.TimerService.LocalBinder
 import com.topjohnwu.superuser.Shell
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 import java.util.Timer
 import java.util.TimerTask
-import java.util.concurrent.Semaphore
-import kotlin.concurrent.thread
 
-class MainActivity : AppCompatActivity(), ServiceConnection {
+class MainActivity : AppCompatActivity() {
     private val mApplicationCollection = HashMap<String?, AppItem>()
     private val mApplicationList: MutableList<AppItem> = arrayListOf()
     private var mTimer:Timer?=null
-    private var mTimerService:TimerService?=null
     private var mViewHolder: ViewHolder? = null
-    private val mLoadPackageSemaphore=Semaphore(1)
 
     private fun loadApplicationList() {
-        thread {
-            mLoadPackageSemaphore.acquire()
-            val pm = packageManager
-            for (info in pm.getInstalledApplications(0)) {
-                val item = AppItem()
-                mApplicationCollection[info.packageName] = item
-                item.packageName = info.packageName
-                item.appName = pm.getApplicationLabel(info).toString()
-                try {
-                    item.version = pm.getPackageInfo(item.packageName!!, 0).versionName
-                } catch (e: PackageManager.NameNotFoundException) {
-                    e.printStackTrace()
-                    item.version = ""
-                }
-                item.icon = packageManager.getApplicationIcon(info)
-                mApplicationList.add(item)
+        val pm = packageManager
+        for (info in pm.getInstalledApplications(0)) {
+            val item = AppItem()
+            mApplicationCollection[info.packageName] = item
+            item.packageName = info.packageName
+            item.appName = pm.getApplicationLabel(info).toString()
+            try {
+                item.version = pm.getPackageInfo(item.packageName!!, 0).versionName
+            } catch (e: PackageManager.NameNotFoundException) {
+                e.printStackTrace()
+                item.version = ""
             }
-            mLoadPackageSemaphore.release()
+            item.icon = packageManager.getApplicationIcon(info)
+            mApplicationList.add(item)
         }
-    }
-
-    override fun onServiceConnected(componentName: ComponentName, iBinder: IBinder) {
-        mLoadPackageSemaphore.acquire()
-        val timerService = (iBinder as LocalBinder).service
-        mTimerService=timerService
-        enableTimer()
-        val viewHolder = ViewHolder(object : TaskOperationListener {
-            override fun onAddTask(packageName: String, timeout: Long): Boolean {
-                timerService.addTask(packageName, timeout)
-                return true
-            }
-            override fun onCancelTask(packageName: String): Boolean {
-                timerService.cancelTask(packageName)
-                return true
-            }
-        })
-        this.mViewHolder = viewHolder
-        viewHolder.bindViews()
-        mViewHolder!!.mAppListAdapter.setList(this.mApplicationList)
-    }
-
-    override fun onServiceDisconnected(componentName: ComponentName) {
-        mTimerService=null
-        disableTimer()
-        mLoadPackageSemaphore.release()
     }
 
     private fun enableTimer(){
@@ -83,16 +51,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         mTimer=Timer().also {
             it.schedule(object:TimerTask() {
                 override fun run() {
-                    val runningTasks = mTimerService?.getRunningTasks() ?: return
-                    for (task in runningTasks) {
-                        val item = mApplicationCollection[task.packageName]
-                        item!!.deadline = task.endTimeMs
-                        this@MainActivity.runOnUiThread {
-                            mViewHolder!!.mAppListAdapter.UpdateItem(
-                                item, listOf(UpdateOption.UpdateDeadline)
-                            )
-                        }
-                    }
+                    EventBus.getDefault().post(ListTaskEvent())
                 }
             }, 0L, 500L)
         }
@@ -116,8 +75,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     }
 
     public override fun onDestroy() {
-        unbindService(this)
         super.onDestroy()
+        EventBus.getDefault().unregister(this)
     }
 
     inner class ViewHolder(listener: TaskOperationListener?) {
@@ -140,6 +99,34 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         loadApplicationList()
         val serviceIntent = Intent(this, TimerService::class.java)
         startService(serviceIntent)
-        bindService(serviceIntent, this, 1)
+        val viewHolder = ViewHolder(object : TaskOperationListener {
+            override fun onAddTask(packageName: String, timeout: Long): Boolean {
+                EventBus.getDefault().post(AddTaskEvent(packageName, timeout))
+                return true
+            }
+            override fun onCancelTask(packageName: String): Boolean {
+                EventBus.getDefault().post(CancelTaskEvent(packageName))
+                return true
+            }
+        })
+        this.mViewHolder = viewHolder
+        viewHolder.bindViews()
+        mViewHolder!!.mAppListAdapter.setList(this.mApplicationList)
+        EventBus.getDefault().register(this)
+    }
+
+    @Subscribe(threadMode = org.greenrobot.eventbus.ThreadMode.MAIN)
+    fun onMessageEvent(event: Any?) {
+        when(event){
+            is TaskStatusEvent->{
+                val item = mApplicationCollection[event.packageName]!!
+                if (event.status == TaskStatusEvent.Status.Running) {
+                    item.deadline = event.endTimeMs
+                    mViewHolder!!.mAppListAdapter.UpdateItem(
+                        item, listOf(UpdateOption.UpdateDeadline)
+                    )
+                }
+            }
+        }
     }
 }
