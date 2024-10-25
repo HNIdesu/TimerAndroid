@@ -4,8 +4,6 @@ import android.app.Dialog
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Toast
-import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
 import com.hnidesu.timer.databinding.DialogSetTimerBinding
 import it.sephiroth.android.library.numberpicker.doOnProgressChanged
@@ -44,19 +42,11 @@ class SetTimerDialog(ctx: Context, item: AppItem, listener: SetTimerListener):Di
         }
         mMinute=5
         setContentView(binding.root)
-        binding.cancelButton.setOnClickListener { view: View? ->
-            Toast.makeText(ctx, R.string.canceled, Toast.LENGTH_SHORT).show()
+        binding.cancelButton.setOnClickListener { _: View? ->
             dismiss()
         }
-        binding.okButton.setOnClickListener { view: View? ->
-            if (listener.onSetTimer(item.packageName!!, timeout)) {
-                Toast.makeText(
-                    ctx,
-                    String.format(ctx.getString(R.string.set_time_success), timeout, item.appName),
-                    Toast.LENGTH_LONG
-                ).show()
-            } else
-                Toast.makeText(ctx, R.string.set_time_failed, Toast.LENGTH_LONG).show()
+        binding.okButton.setOnClickListener { _: View? ->
+            listener.onSetTimer(item.packageName, timeout)
             dismiss()
         }
         binding.hourPicker.doOnProgressChanged { _, progress, fromUser ->

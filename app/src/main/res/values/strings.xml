@@ -14,10 +14,7 @@
     <string name="exit">退出</string>
     <string name="ok">确定</string>
     <string name="package_name_placeholder">package name</string>
-    <string name="remaining_minutes">%dm%ds</string>
-    <string name="remaining_seconds">%ds</string>
     <string name="set_time_failed">定时失败</string>
-    <string name="set_time_success">将在%d秒后关闭%s</string>
     <string name="setting">设置</string>
     <string name="stopped">已停止</string>
     <string name="stopping_application">正在停止%s</string>
@@ -28,4 +25,5 @@
     <string name="hour">小时</string>
     <string name="minute">分钟</string>
     <string name="second">秒</string>
+    <string name="completed">已完成</string>
 </resources>

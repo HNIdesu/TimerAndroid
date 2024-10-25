@@ -41,13 +41,7 @@ class AppListAdapter(
         if ((UpdateOption.UpdateIcon.value and payload) != 0) {
             holder.mIvIcon.setImageDrawable(info.icon)
         } else if ((UpdateOption.UpdateDeadline.value and payload) != 0) {
-            val restTime = (info.deadline - System.currentTimeMillis()) / 1000
-            if (info.deadline < 0 || restTime < 0) {
-                holder.mDeadline.visibility = View.INVISIBLE
-                return
-            }
-            holder.mDeadline.text = GetDeadlineText(restTime)
-            holder.mDeadline.visibility = View.VISIBLE
+            holder.mDeadline.text = getDeadlineText(info.deadline,info.status)
         } else if ((UpdateOption.UpdateAppName.value and payload) != 0) {
             holder.mTvAppName.text = info.appName
         } else if ((UpdateOption.UpdateVersion.value and payload) != 0) {
@@ -76,7 +70,7 @@ class AppListAdapter(
         val mTvVersion: TextView = itemView.findViewById(R.id.version)
     }
 
-    fun UpdateItem(item: AppItem, options: List<UpdateOption>?) {
+    fun updateItem(item: AppItem, options: List<UpdateOption>?) {
         if (mIndexList.containsKey(item.packageName)) {
             val index = mIndexList[item.packageName]!!
             mApplicationList!![index] = item
@@ -98,40 +92,54 @@ class AppListAdapter(
         )
     }
 
-    fun GetDeadlineText(intervalInSeconds: Long): CharSequence {
-        val outStr: String
+    private fun getDeadlineText(deadline: Long, status:AppItem.Status): CharSequence {
         val builder = SpannableStringBuilder()
-        var span: Any? = null
-        if (intervalInSeconds == 0L) {
-            outStr = mContext.getString(R.string.stopped)
-        } else if (intervalInSeconds <= 60) {
-            outStr =
-                String.format(mContext.getString(R.string.remaining_seconds), intervalInSeconds)
-            span = ForegroundColorSpan(mContext.getColor(R.color.red))
-        } else if (intervalInSeconds <= 300) {
-            outStr = String.format(
-                mContext.getString(R.string.remaining_minutes),
-                intervalInSeconds / 60,
-                intervalInSeconds % 60
-            )
-            span = ForegroundColorSpan(mContext.getColor(R.color.orange))
-        } else if (intervalInSeconds <= 600) {
-            outStr = String.format(
-                mContext.getString(R.string.remaining_minutes),
-                intervalInSeconds / 60,
-                intervalInSeconds % 60
-            )
-            span = ForegroundColorSpan(mContext.getColor(R.color.yellow))
-        } else {
-            outStr = String.format(
-                mContext.getString(R.string.remaining_minutes),
-                intervalInSeconds / 60,
-                intervalInSeconds % 60
-            )
-            span = ForegroundColorSpan(mContext.getColor(R.color.green))
+        val intervalInSeconds=(deadline - System.currentTimeMillis()) / 1000
+        val outStr: String
+        val span: Any
+        when (status){
+            AppItem.Status.Canceled->{
+                outStr = mContext.getString(R.string.canceled)
+                span = ForegroundColorSpan(mContext.getColor(R.color.black))
+            }
+            AppItem.Status.Completed->{
+                outStr = mContext.getString(R.string.completed)
+                span = ForegroundColorSpan(mContext.getColor(R.color.black))
+            }
+            AppItem.Status.Running->{
+                when {
+                    intervalInSeconds == 0L -> {
+                        outStr = mContext.getString(R.string.completed)
+                        span = ForegroundColorSpan(mContext.getColor(R.color.black))
+                    }
+                    intervalInSeconds <= 60 -> {
+                        outStr = "${intervalInSeconds}s"
+                        span = ForegroundColorSpan(mContext.getColor(R.color.red))
+                    }
+                    intervalInSeconds <= 300 -> {
+                        outStr = "${intervalInSeconds/60}m${intervalInSeconds%60}s"
+                        span = ForegroundColorSpan(mContext.getColor(R.color.orange))
+                    }
+                    intervalInSeconds <= 600 -> {
+                        outStr = "${intervalInSeconds/60}m${intervalInSeconds%60}s"
+                        span = ForegroundColorSpan(mContext.getColor(R.color.yellow))
+                    }
+                    else -> {
+                        val hours = intervalInSeconds / 3600
+                        val minutes = (intervalInSeconds % 3600) / 60
+                        val seconds = intervalInSeconds % 60
+                        outStr = if (hours > 0) "${hours}h${minutes}m${seconds}s"
+                        else "${minutes}m${seconds}s"
+                        span = ForegroundColorSpan(mContext.getColor(R.color.green))
+                    }
+                }
+            }
+            else->{
+                return ""
+            }
         }
         builder.append(outStr)
-        if (span != null) builder.setSpan(span, 0, outStr.length, 17)
+        builder.setSpan(span, 0, outStr.length, SpannableStringBuilder.SPAN_INCLUSIVE_EXCLUSIVE)
         return builder
     }
 
@@ -141,48 +149,36 @@ class AppListAdapter(
         holder.mTvAppName.text = info.appName
         holder.mTvVersion.text = info.version
         holder.mIvIcon.setImageDrawable(info.icon)
-        holder.mContentView.setOnClickListener { view: View? ->
-            if (info.deadline == -1L) {
+        holder.mContentView.setOnClickListener { _: View? ->
+            if (info.status!=AppItem.Status.Running){
                 val dialog = SetTimerDialog(
                     mContext, info, object:SetTimerListener {
                         override fun onSetTimer(packageName: String, intervalInSeconds: Long): Boolean {
-                            return mTaskOperationListener.onAddTask(
-                                packageName,
-                                intervalInSeconds
-                            )
+                            return mTaskOperationListener.onAddTask(packageName, intervalInSeconds)
                         }
                     }
                 ).also {
                     it.timeout= SettingManager.getDefault(mContext).getLong("timeout",300)
                 }
                 dialog.show()
-                return@setOnClickListener
-            }
-            AlertDialog.Builder(mContext).setMessage(R.string.weather_cancel_timer)
-                .setPositiveButton(R.string.ok) { dialogInterface: DialogInterface?, i: Int ->
-                    if (mTaskOperationListener.onCancelTask(info.packageName!!)) {
-                        Toast.makeText(mContext, R.string.the_task_is_canceled, Toast.LENGTH_LONG)
+            }else{
+                AlertDialog.Builder(mContext).setMessage(R.string.weather_cancel_timer)
+                    .setPositiveButton(R.string.ok) { _: DialogInterface?, i: Int ->
+                        if (mTaskOperationListener.onCancelTask(info.packageName)) {
+                            Toast.makeText(mContext, R.string.the_task_is_canceled, Toast.LENGTH_LONG)
+                                .show()
+                            info.deadline = -1
+                            updateItem(info, listOf(UpdateOption.UpdateDeadline))
+                        }
+                    }.setNegativeButton(R.string.cancel) { _: DialogInterface?, i: Int ->
+                        val context = mContext
+                        Toast.makeText(context, context.getString(R.string.canceled), Toast.LENGTH_SHORT)
                             .show()
-                        info.deadline = -1
-                        UpdateItem(info, listOf(UpdateOption.UpdateDeadline))
-                    }
-                }.setNegativeButton(R.string.cancel) { dialogInterface: DialogInterface?, i: Int ->
-                val context = mContext
-                Toast.makeText(context, context.getString(R.string.canceled), Toast.LENGTH_SHORT)
-                    .show()
-            }.setOnDismissListener { dialogInterface: DialogInterface? ->
-                val context = mContext
-                Toast.makeText(context, context.getString(R.string.canceled), Toast.LENGTH_SHORT)
-                    .show()
-            }.create().show()
+                    }.setOnDismissListener {
+                    }.create().show()
+            }
         }
-        val restTime = (info.deadline - System.currentTimeMillis()) / 1000
-        if (info.deadline < 0 || restTime < 0) {
-            holder.mDeadline.visibility = View.INVISIBLE
-            return
-        }
-        holder.mDeadline.text = GetDeadlineText(restTime)
-        holder.mDeadline.visibility = View.VISIBLE
+        holder.mDeadline.text = getDeadlineText(info.deadline,info.status)
     }
 
     override fun getItemCount(): Int {

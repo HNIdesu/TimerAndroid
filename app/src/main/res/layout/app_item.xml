@@ -43,7 +43,7 @@
             android:maxLines="1"/>
     </LinearLayout>
     <TextView
-        android:textSize="13sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:id="@+id/deadline"
         android:layout_width="wrap_content"

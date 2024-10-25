@@ -31,17 +31,20 @@ class MainActivity : AppCompatActivity() {
     private fun loadApplicationList() {
         val pm = packageManager
         for (info in pm.getInstalledApplications(0)) {
-            val item = AppItem()
-            mApplicationCollection[info.packageName] = item
-            item.packageName = info.packageName
-            item.appName = pm.getApplicationLabel(info).toString()
-            try {
-                item.version = pm.getPackageInfo(item.packageName!!, 0).versionName
+            val version=try {
+                pm.getPackageInfo(info.packageName!!, 0).versionName
             } catch (e: PackageManager.NameNotFoundException) {
-                e.printStackTrace()
-                item.version = ""
+                ""
             }
-            item.icon = packageManager.getApplicationIcon(info)
+            val item = AppItem(
+                info.packageName,
+                pm.getApplicationLabel(info).toString(),
+                version,
+                packageManager.getApplicationIcon(info),
+                -1,
+                AppItem.Status.None
+            )
+            mApplicationCollection[info.packageName] = item
             mApplicationList.add(item)
         }
     }
@@ -122,11 +125,34 @@ class MainActivity : AppCompatActivity() {
         when(event){
             is TaskStatusEvent->{
                 val item = mApplicationCollection[event.packageName]!!
-                if (event.status == TaskStatusEvent.Status.Running) {
-                    item.deadline = event.endTimeMs
-                    mViewHolder!!.mAppListAdapter.UpdateItem(
-                        item, listOf(UpdateOption.UpdateDeadline)
-                    )
+                when(event.status){
+                    TaskStatusEvent.Status.Running->{
+                        item.deadline = event.endTimeMs
+                        item.status=AppItem.Status.Running
+                        mViewHolder!!.mAppListAdapter.updateItem(
+                            item, listOf(UpdateOption.UpdateDeadline)
+                        )
+                    }
+                    TaskStatusEvent.Status.Canceled->{
+                        item.deadline = -1
+                        item.status=AppItem.Status.Canceled
+                        mViewHolder!!.mAppListAdapter.updateItem(
+                            item, listOf(UpdateOption.UpdateDeadline)
+                        )
+                    }
+                    TaskStatusEvent.Status.Completed->{
+                        item.deadline = -1
+                        item.status=AppItem.Status.Completed
+                        mViewHolder!!.mAppListAdapter.updateItem(
+                            item, listOf(UpdateOption.UpdateDeadline))
+                    }
+                    TaskStatusEvent.Status.Error-> {
+                        item.deadline = -1
+                        item.status = AppItem.Status.Error
+                        mViewHolder!!.mAppListAdapter.updateItem(
+                            item, listOf(UpdateOption.UpdateDeadline)
+                        )
+                    }
                 }
             }
         }

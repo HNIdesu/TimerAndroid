@@ -2,10 +2,19 @@ package com.hnidesu.timer.component
 
 import android.graphics.drawable.Drawable
 
-class AppItem {
-    var appName: String? = null
-    var deadline: Long = -1
-    var icon: Drawable? = null
-    var packageName: String? = null
-    var version: String? = null
+class AppItem(
+    var packageName: String,
+    var appName: String,
+    var version: String,
+    var icon: Drawable,
+    var deadline: Long,
+    var status:Status
+){
+    enum class Status{
+        None,
+        Running,
+        Canceled,
+        Completed,
+        Error
+    }
 }
