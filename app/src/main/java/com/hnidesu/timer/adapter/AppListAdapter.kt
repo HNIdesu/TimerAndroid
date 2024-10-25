@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,8 +14,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
-import com.hnidesu.timer.menu.SetTimerWindow
-import com.hnidesu.timer.menu.SetTimerWindow.SetTimerListener
+import com.hnidesu.timer.menu.SetTimerDialog
+import com.hnidesu.timer.menu.SetTimerDialog.SetTimerListener
 
 class AppListAdapter(
     private val mContext: Context,
@@ -26,8 +25,7 @@ class AppListAdapter(
     private val mIndexList = HashMap<String?, Int>()
 
     interface TaskOperationListener {
-        fun onAddTask(packageName: String, timeout: Int): Boolean
-
+        fun onAddTask(packageName: String, timeout: Long): Boolean
         fun onCancelTask(packageName: String): Boolean
     }
 
@@ -144,18 +142,18 @@ class AppListAdapter(
         holder.mIvIcon.setImageDrawable(info.icon)
         holder.mContentView.setOnClickListener { view: View? ->
             if (info.deadline == -1L) {
-                val window = SetTimerWindow(
+                val dialog = SetTimerDialog(
                     mContext, info,
                     object:SetTimerListener {
-                        override fun onSetTimer(packageName: String, intervalInMinutes: Int): Boolean {
+                        override fun onSetTimer(packageName: String, intervalInSeconds: Long): Boolean {
                             return mTaskOperationListener.onAddTask(
                                 packageName,
-                                intervalInMinutes
+                                intervalInSeconds
                             )
                         }
-                    }, holder.mContentView as ViewGroup
+                    }
                 )
-                window.showAtLocation(view, Gravity.CENTER, 0, 0)
+                dialog.show()
                 return@setOnClickListener
             }
             AlertDialog.Builder(mContext).setMessage(R.string.weather_cancel_timer)

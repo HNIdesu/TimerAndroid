@@ -30,8 +30,8 @@ class TimerService : Service() {
         override fun handleMessage(msg: Message) {
             if (msg.what == 3321) {
                 val bundle = msg.obj as Bundle
-                val timeout = bundle.getInt("timeout").toLong()
-                val timeToStop = System.currentTimeMillis() + (60 * timeout * 1000)
+                val timeout = bundle.getLong("timeout")
+                val timeToStop = System.currentTimeMillis() + (timeout * 1000)
                 val packageName = bundle.getString("package_name")
                 synchronized(this.taskList) {
                     if (taskList.containsKey(packageName) && !taskList.get(packageName)!!.scheduledFuture!!.isDone()) {
@@ -45,7 +45,7 @@ class TimerService : Service() {
                         synchronized(taskList) {
                             taskList.remove(packageName)
                         }
-                    }, timeout, TimeUnit.MINUTES
+                    }, timeout, TimeUnit.SECONDS
                 )
                 timerTask.packageName = packageName
                 timerTask.endTimeMs = timeToStop
@@ -86,12 +86,12 @@ class TimerService : Service() {
             get() = this@TimerService
     }
 
-    fun addTask(packageName: String, timeout: Int) {
+    fun addTask(packageName: String, timeout: Long) {
         val msg = Message()
         msg.what = 3321
         val bundle = Bundle()
         bundle.putString("package_name", packageName)
-        bundle.putInt("timeout", timeout)
+        bundle.putLong("timeout", timeout)
         msg.obj = bundle
         mHandler!!.sendMessage(msg)
     }

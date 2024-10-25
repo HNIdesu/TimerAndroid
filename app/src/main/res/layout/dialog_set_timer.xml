@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingTop="20dp"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+    <TextView
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:id="@+id/titleView"
+        android:textSize="24sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/add_timer" />
+    <GridLayout
+        android:layout_marginTop="20dp"
+        android:rowCount="3"
+        android:columnCount="2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_marginLeft="20dp"
+            android:layout_row="0"
+            android:layout_column="1"
+            android:textSize="20sp"
+            android:layout_gravity="center_vertical"
+            android:text="@string/hour" />
+        <it.sephiroth.android.library.numberpicker.NumberPicker
+            android:layout_row="0"
+            android:layout_column="0"
+            android:id="@+id/hourPicker"
+            android:orientation="horizontal"
+            android:layout_width="200dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            app:picker_max="10"
+            app:picker_min="0" />
+        <TextView
+            android:layout_marginLeft="20dp"
+            android:layout_row="1"
+            android:layout_column="1"
+            android:textSize="20sp"
+            android:layout_gravity="center_vertical"
+            android:text="@string/minute" />
+        <it.sephiroth.android.library.numberpicker.NumberPicker
+            android:layout_row="1"
+            android:layout_column="0"
+            android:id="@+id/minutePicker"
+            android:orientation="horizontal"
+            android:layout_width="200dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            app:picker_max="59"
+            app:picker_min="0" />
+        <TextView
+            android:layout_marginLeft="20dp"
+            android:layout_row="2"
+            android:layout_column="1"
+            android:textSize="20sp"
+            android:layout_gravity="center_vertical"
+            android:text="@string/second" />
+        <it.sephiroth.android.library.numberpicker.NumberPicker
+            android:layout_row="2"
+            android:layout_column="0"
+            android:id="@+id/secondPicker"
+            android:orientation="horizontal"
+            android:layout_width="200dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            app:picker_max="59"
+            app:picker_min="0" />
+    </GridLayout>
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_marginTop="5dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/okButton"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/cancelButton"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ok"/>
+        <Button
+            android:id="@+id/cancelButton"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:textColor="@color/black"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/cancel"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

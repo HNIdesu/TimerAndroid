@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         }
         mTimer.scheduleAtFixedRate(task, 0L, 500L)
         val viewHolder = ViewHolder(object : TaskOperationListener {
-            override fun onAddTask(packageName: String, timeout: Int): Boolean {
+            override fun onAddTask(packageName: String, timeout: Long): Boolean {
                 timerService.addTask(packageName, timeout)
                 return true
             }
