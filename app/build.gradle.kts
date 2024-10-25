@@ -49,4 +49,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("com.github.topjohnwu.libsu:core:6.0.0")
     implementation("com.github.sephiroth74:NumberSlidingPicker:v1.0.3")
+    implementation("org.greenrobot:eventbus:3.3.1")
 }
