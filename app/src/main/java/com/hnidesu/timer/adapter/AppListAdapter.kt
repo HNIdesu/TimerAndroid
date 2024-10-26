@@ -11,17 +11,43 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.drawable.toBitmap
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
 import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.menu.SetTimerDialog
 import com.hnidesu.timer.menu.SetTimerDialog.SetTimerListener
+import com.squareup.picasso.Picasso
+import com.squareup.picasso.Request
+import com.squareup.picasso.RequestHandler
 
 class AppListAdapter(
     private val mContext: Context,
     private val mTaskOperationListener: TaskOperationListener
 ) : RecyclerView.Adapter<AppListAdapter.ViewHolder>(){
+    companion object{
+        private var mIsPicassoInitialized:Boolean = false
+    }
+
+    init {
+        if(!mIsPicassoInitialized){
+            val picasso = Picasso.Builder(mContext).addRequestHandler(object : RequestHandler(){
+                override fun canHandleRequest(data: Request?): Boolean {
+                    if(data==null) return false
+                    return data.uri.scheme=="custom"
+                }
+                override fun load(request: Request?, networkPolicy: Int): Result? {
+                    val packageName= request?.uri?.host ?: return null
+                    val icon=mContext.packageManager.getApplicationIcon(packageName)
+                    return Result(icon.toBitmap(), Picasso.LoadedFrom.DISK)
+                }
+            }).build()
+            Picasso.setSingletonInstance(picasso)
+            mIsPicassoInitialized=true
+        }
+    }
+
     private var mApplicationList: MutableList<AppItem>? = null
     private val mIndexList = HashMap<String?, Int>()
 
@@ -39,7 +65,7 @@ class AppListAdapter(
         val info = mApplicationList!![position]
         val payload = payloads[0] as Int
         if ((UpdateOption.UpdateIcon.value and payload) != 0) {
-            holder.mIvIcon.setImageDrawable(info.icon)
+            Picasso.get().load("custom://${info.packageName}").into(holder.mIvIcon)
         } else if ((UpdateOption.UpdateDeadline.value and payload) != 0) {
             holder.mDeadline.text = getDeadlineText(info.deadline,info.status)
         } else if ((UpdateOption.UpdateAppName.value and payload) != 0) {
@@ -148,7 +174,7 @@ class AppListAdapter(
         holder.mTvPackageName.text = info.packageName
         holder.mTvAppName.text = info.appName
         holder.mTvVersion.text = info.version
-        holder.mIvIcon.setImageDrawable(info.icon)
+        Picasso.get().load("custom://${info.packageName}").into(holder.mIvIcon)
         holder.mContentView.setOnClickListener { _: View? ->
             if (info.status!=AppItem.Status.Running){
                 val dialog = SetTimerDialog(
@@ -163,14 +189,14 @@ class AppListAdapter(
                 dialog.show()
             }else{
                 AlertDialog.Builder(mContext).setMessage(R.string.weather_cancel_timer)
-                    .setPositiveButton(R.string.ok) { _: DialogInterface?, i: Int ->
+                    .setPositiveButton(R.string.ok) { _: DialogInterface?, _: Int ->
                         if (mTaskOperationListener.onCancelTask(info.packageName)) {
                             Toast.makeText(mContext, R.string.the_task_is_canceled, Toast.LENGTH_LONG)
                                 .show()
                             info.deadline = -1
                             updateItem(info, listOf(UpdateOption.UpdateDeadline))
                         }
-                    }.setNegativeButton(R.string.cancel) { _: DialogInterface?, i: Int ->
+                    }.setNegativeButton(R.string.cancel) { _: DialogInterface?, _: Int ->
                         val context = mContext
                         Toast.makeText(context, context.getString(R.string.canceled), Toast.LENGTH_SHORT)
                             .show()
