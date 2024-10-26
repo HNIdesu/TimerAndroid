@@ -11,13 +11,20 @@ import com.hnidesu.timer.adapter.AppListAdapter
 import com.hnidesu.timer.adapter.AppListAdapter.TaskOperationListener
 import com.hnidesu.timer.adapter.AppListAdapter.UpdateOption
 import com.hnidesu.timer.component.AppItem
+import com.hnidesu.timer.database.AppRecordEntity
 import com.hnidesu.timer.eventbus.AddTaskEvent
 import com.hnidesu.timer.eventbus.CancelTaskEvent
 import com.hnidesu.timer.eventbus.ListTaskEvent
 import com.hnidesu.timer.eventbus.TaskStatusEvent
+import com.hnidesu.timer.manager.DatabaseManager
 import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.service.TimerService
 import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import java.util.Timer
@@ -31,6 +38,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadApplicationList(includeSystemApps: Boolean = false) {
         val pm = packageManager
+        val recordMapTask=CoroutineScope(Dispatchers.IO).async {
+            val result=mutableMapOf<String,Long>()
+            DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao().getAll().forEach {
+                result[it.packageName]=it.lastAccessTime
+            }
+            return@async result
+        }
         for (info in pm.getInstalledApplications(0)) {
             if(!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM)!=0)
                 continue
@@ -49,6 +63,12 @@ class MainActivity : AppCompatActivity() {
             )
             mApplicationCollection[info.packageName] = item
             mApplicationList.add(item)
+        }
+        val recordMap=runBlocking {
+            recordMapTask.await()
+        }
+        mApplicationList.sortByDescending {
+            recordMap.get(it.packageName)?:0
         }
     }
 
@@ -106,10 +126,15 @@ class MainActivity : AppCompatActivity() {
         loadApplicationList()
         val serviceIntent = Intent(this, TimerService::class.java)
         startService(serviceIntent)
+        val recordDao=DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao()
         val viewHolder = ViewHolder(object : TaskOperationListener {
             override fun onAddTask(packageName: String, timeout: Long): Boolean {
                 EventBus.getDefault().post(AddTaskEvent(packageName, timeout))
                 SettingManager.getDefault(this@MainActivity).edit().putLong("timeout",timeout).apply()
+                CoroutineScope(Dispatchers.IO).launch {
+                    val entity=AppRecordEntity(packageName,System.currentTimeMillis())
+                    recordDao.insertOrUpdate(entity)
+                }
                 return true
             }
             override fun onCancelTask(packageName: String): Boolean {
