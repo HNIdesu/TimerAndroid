@@ -8,6 +8,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/app_list"
         android:layout_width="match_parent"
+        android:background="@drawable/app_list_background"
         android:layout_height="match_parent"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
 </LinearLayout>
