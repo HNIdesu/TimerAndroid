@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -47,7 +48,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("com.github.topjohnwu.libsu:core:6.0.0")
-    implementation("com.github.sephiroth74:NumberSlidingPicker:v1.0.3")
-    implementation("org.greenrobot:eventbus:3.3.1")
+    implementation(libs.core)
+    implementation(libs.numberslidingpicker)
+    implementation(libs.eventbus)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 }
