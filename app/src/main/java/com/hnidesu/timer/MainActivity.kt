@@ -1,6 +1,7 @@
 package com.hnidesu.timer
 
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
@@ -28,19 +29,21 @@ class MainActivity : AppCompatActivity() {
     private var mTimer:Timer?=null
     private var mViewHolder: ViewHolder? = null
 
-    private fun loadApplicationList() {
+    private fun loadApplicationList(includeSystemApps: Boolean = false) {
         val pm = packageManager
         for (info in pm.getInstalledApplications(0)) {
-            val version=try {
-                pm.getPackageInfo(info.packageName!!, 0).versionName
+            if(!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM)!=0)
+                continue
+            val packageInfo = try {
+                pm.getPackageInfo(info.packageName!!, 0)
             } catch (e: PackageManager.NameNotFoundException) {
-                ""
+                continue
             }
+            val version = packageInfo.versionName
             val item = AppItem(
                 info.packageName,
                 pm.getApplicationLabel(info).toString(),
                 version,
-                packageManager.getApplicationIcon(info),
                 -1,
                 AppItem.Status.None
             )
