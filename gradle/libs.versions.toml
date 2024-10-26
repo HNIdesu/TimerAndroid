@@ -11,6 +11,7 @@ appcompat = "1.6.1"
 material = "1.10.0"
 ksp="1.9.25-1.0.20"
 numberslidingpicker = "v1.0.3"
+picasso = "2.8"
 room = "2.6.1"
 
 [libraries]
@@ -26,6 +27,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 numberslidingpicker = { module = "com.github.sephiroth74:NumberSlidingPicker", version.ref = "numberslidingpicker" }
+picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
