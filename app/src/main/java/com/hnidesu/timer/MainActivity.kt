@@ -32,19 +32,12 @@ import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity(), ServiceConnection {
     private val mApplicationCollection = HashMap<String?, AppItem>()
-    private val mApplicationList: MutableList<AppItem> = arrayListOf()
     private lateinit var mTimer: Timer
     private var mViewHolder: ViewHolder? = null
+    private var mIncludeSystemApps = false
 
     private fun loadApplicationList(includeSystemApps: Boolean = false) {
         val pm = packageManager
-        val recordMapTask = CoroutineScope(Dispatchers.IO).async {
-            val result = mutableMapOf<String, Long>()
-            DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao().getAll().forEach {
-                result[it.packageName] = it.lastAccessTime
-            }
-            return@async result
-        }
         for (info in pm.getInstalledApplications(0)) {
             if (!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
                 continue
@@ -62,14 +55,15 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
                 TaskStatus.None
             )
             mApplicationCollection[info.packageName] = item
-            mApplicationList.add(item)
         }
         val recordMap = runBlocking {
-            recordMapTask.await()
+            val result = mutableMapOf<String, Long>()
+            DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao().getAll().forEach {
+                result[it.packageName] = it.lastAccessTime
+            }
+            return@runBlocking result
         }
-        mApplicationList.sortByDescending {
-            recordMap[it.packageName] ?: 0
-        }
+        mViewHolder?.mAppListAdapter?.setList(mApplicationCollection.values.sortedByDescending { recordMap[it.packageName] ?: 0 })
     }
 
     override fun onStop() {
@@ -119,9 +113,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
             Toast.makeText(this, R.string.the_device_is_not_rooted, Toast.LENGTH_SHORT).show()
             exitProcess(0)
         }
-        loadApplicationList()
-        val serviceIntent = Intent(this, TimerService::class.java)
-        startService(serviceIntent)
+        startService(Intent(this, TimerService::class.java))
         val recordDao = DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao()
         val viewHolder = ViewHolder(object : TaskOperationListener {
             override fun onAddTask(packageName: String, timeout: Long): Boolean {
@@ -149,10 +141,17 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         })
         this.mViewHolder = viewHolder
         viewHolder.bindViews()
-        viewHolder.mAppListAdapter.setList(this.mApplicationList)
+        mIncludeSystemApps = SettingManager.getDefault(this).getBoolean("show_system_apps",false)
+        loadApplicationList(includeSystemApps = mIncludeSystemApps)
     }
 
     override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+        val includeSystemApps = SettingManager.getDefault(this).getBoolean("show_system_apps",false)
+        if (includeSystemApps != mIncludeSystemApps){
+            loadApplicationList(includeSystemApps = includeSystemApps)
+            mIncludeSystemApps = includeSystemApps
+        }
+
         mTimer.schedule(500){
             val adapter = mViewHolder?.mAppListAdapter ?: return@schedule
             if (binder is TimerService.LocalBinder) {

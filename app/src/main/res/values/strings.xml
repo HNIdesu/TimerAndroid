@@ -28,4 +28,6 @@
     <string name="completed">已完成</string>
     <string name="icon">图标</string>
     <string name="title_activity_settings">设置</string>
+    <string name="show_system_apps">显示系统应用</string>
+    <string name="auto_shutdown">自动关闭</string>
 </resources>

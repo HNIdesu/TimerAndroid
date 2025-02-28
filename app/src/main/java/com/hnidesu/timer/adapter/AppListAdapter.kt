@@ -48,7 +48,7 @@ class AppListAdapter(
         }
     }
 
-    private var mApplicationList: MutableList<AppItem>? = null
+    private var mApplicationList: List<AppItem>? = null
     private val mIndexList = HashMap<String?, Int>()
 
     interface TaskOperationListener {
@@ -99,15 +99,13 @@ class AppListAdapter(
     fun updateItem(item: AppItem, options: List<UpdateOption>?) {
         if (mIndexList.containsKey(item.packageName)) {
             val index = mIndexList[item.packageName]!!
-            mApplicationList!![index] = item
             if (options == null) {
                 notifyItemChanged(index)
                 return
             }
             var flag = 0
-            for (option in options) {
+            for (option in options)
                 flag = flag or option.value
-            }
             notifyItemChanged(index, flag)
         }
     }
@@ -202,7 +200,7 @@ class AppListAdapter(
         return list.size
     }
 
-    fun setList(list: MutableList<AppItem>) {
+    fun setList(list: List<AppItem>) {
         this.mApplicationList = list
         mIndexList.clear()
         val len = list.size

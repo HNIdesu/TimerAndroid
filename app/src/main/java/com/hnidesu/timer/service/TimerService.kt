@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.component.TimerTask
+import com.hnidesu.timer.manager.SettingManager
 import com.topjohnwu.superuser.Shell
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -28,24 +29,26 @@ class TimerService : Service() {
     private lateinit var mWorkingExecutorService: ExecutorService
     private lateinit var mScheduledExecutorService: ScheduledExecutorService
 
-    private fun checkAllTasksCompleted(){
+    private fun checkAllTasksCompleted() {
+        val autoShutdown = SettingManager.getDefault(this).getBoolean("auto_shutdown", false)
+        if (!autoShutdown) return
         mWorkingExecutorService.execute {
             val isAllTasksCompleted = mTaskList.values.all {
-                it.status  == TaskStatus.Completed || it.status == TaskStatus.Canceled
+                it.status == TaskStatus.Completed || it.status == TaskStatus.Canceled
             }
-            if(isAllTasksCompleted){
-                if(mAutoShutdownFuture == null){
-                    Log.i(TAG,"程序将在10分钟后关闭")
+            if (isAllTasksCompleted) {
+                if (mAutoShutdownFuture == null) {
+                    Log.i(TAG, "程序将在10分钟后关闭")
                     mAutoShutdownFuture = mScheduledExecutorService.schedule({
                         exitProcess(0)
-                    },10,TimeUnit.MINUTES)
+                    }, 10, TimeUnit.MINUTES)
                 }
-            } else{
+            } else {
                 val future = mAutoShutdownFuture
-                if(future != null){
+                if (future != null) {
                     future.cancel(true)
                     mAutoShutdownFuture = null
-                    Log.i(TAG,"自动关闭任务已取消")
+                    Log.i(TAG, "自动关闭任务已取消")
                 }
             }
         }
