@@ -7,9 +7,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.IBinder
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
+import com.hnidesu.timer.activity.SettingsActivity
 import com.hnidesu.timer.adapter.AppListAdapter
 import com.hnidesu.timer.adapter.AppListAdapter.TaskOperationListener
 import com.hnidesu.timer.component.AppItem
@@ -92,6 +95,20 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     override fun onDestroy() {
         super.onDestroy()
         mTimer.cancel()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main,menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            R.id.exit -> exitProcess(0)
+            R.id.settings -> startActivity(Intent(this, SettingsActivity::class.java))
+            else -> return false
+        }
+        return true
     }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
