@@ -1,12 +1,14 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
     <CheckBoxPreference
-        app:key="auto_shutdown"
-        app:title="@string/auto_shutdown"
-        app:defaultValue="false"
-        app:iconSpaceReserved="false"/>
-    <CheckBoxPreference
         app:key="show_system_apps"
         app:title="@string/show_system_apps"
+        app:defaultValue="false"
+        app:summary="@string/show_system_apps_summary"
+        app:iconSpaceReserved="false"/>
+    <CheckBoxPreference
+        app:key="auto_shutdown"
+        app:title="@string/auto_shutdown"
+        app:summary="@string/auto_shutdown_summary"
         app:defaultValue="false"
         app:iconSpaceReserved="false"/>
 </PreferenceScreen>

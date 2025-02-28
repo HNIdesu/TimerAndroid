@@ -30,4 +30,6 @@
     <string name="title_activity_settings">设置</string>
     <string name="show_system_apps">显示系统应用</string>
     <string name="auto_shutdown">自动关闭</string>
+    <string name="auto_shutdown_summary">当全部任务完成后一段时间内如果没有新的任务则自动关闭程序</string>
+    <string name="show_system_apps_summary">在应用列表显示系统应用</string>
 </resources>
