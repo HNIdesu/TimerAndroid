@@ -5,13 +5,5 @@ data class AppItem(
     var appName: String,
     var version: String,
     var deadline: Long,
-    var status:Status
-){
-    enum class Status{
-        None,
-        Running,
-        Canceled,
-        Completed,
-        Error
-    }
-}
+    var status: TaskStatus
+)

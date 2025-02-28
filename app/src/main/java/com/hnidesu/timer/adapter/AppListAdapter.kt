@@ -9,12 +9,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.drawable.toBitmap
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
+import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.menu.SetTimerDialog
 import com.hnidesu.timer.menu.SetTimerDialog.SetTimerListener
@@ -118,21 +118,21 @@ class AppListAdapter(
         )
     }
 
-    private fun getDeadlineText(deadline: Long, status:AppItem.Status): CharSequence {
+    private fun getDeadlineText(deadline: Long, status:TaskStatus): CharSequence {
         val builder = SpannableStringBuilder()
         val intervalInSeconds=(deadline - System.currentTimeMillis()) / 1000
         val outStr: String
         val span: Any
         when (status){
-            AppItem.Status.Canceled->{
+            TaskStatus.Canceled->{
                 outStr = mContext.getString(R.string.canceled)
                 span = ForegroundColorSpan(mContext.getColor(R.color.black))
             }
-            AppItem.Status.Completed->{
+            TaskStatus.Completed->{
                 outStr = mContext.getString(R.string.completed)
                 span = ForegroundColorSpan(mContext.getColor(R.color.black))
             }
-            AppItem.Status.Running->{
+            TaskStatus.Running->{
                 when {
                     intervalInSeconds == 0L -> {
                         outStr = mContext.getString(R.string.completed)
@@ -159,10 +159,9 @@ class AppListAdapter(
                         span = ForegroundColorSpan(mContext.getColor(R.color.green))
                     }
                 }
+
             }
-            else->{
-                return ""
-            }
+            else -> return ""
         }
         builder.append(outStr)
         builder.setSpan(span, 0, outStr.length, SpannableStringBuilder.SPAN_INCLUSIVE_EXCLUSIVE)
@@ -176,7 +175,7 @@ class AppListAdapter(
         holder.mTvVersion.text = info.version
         Picasso.get().load("custom://${info.packageName}").into(holder.mIvIcon)
         holder.mContentView.setOnClickListener { _: View? ->
-            if (info.status!=AppItem.Status.Running){
+            if (info.status != TaskStatus.Running){
                 val dialog = SetTimerDialog(
                     mContext, info, object:SetTimerListener {
                         override fun onSetTimer(packageName: String, intervalInSeconds: Long): Boolean {
@@ -190,18 +189,9 @@ class AppListAdapter(
             }else{
                 AlertDialog.Builder(mContext).setMessage(R.string.weather_cancel_timer)
                     .setPositiveButton(R.string.ok) { _: DialogInterface?, _: Int ->
-                        if (mTaskOperationListener.onCancelTask(info.packageName)) {
-                            Toast.makeText(mContext, R.string.the_task_is_canceled, Toast.LENGTH_LONG)
-                                .show()
-                            info.deadline = -1
-                            updateItem(info, listOf(UpdateOption.UpdateDeadline))
-                        }
+                        mTaskOperationListener.onCancelTask(info.packageName)
                     }.setNegativeButton(R.string.cancel) { _: DialogInterface?, _: Int ->
-                        val context = mContext
-                        Toast.makeText(context, context.getString(R.string.canceled), Toast.LENGTH_SHORT)
-                            .show()
-                    }.setOnDismissListener {
-                    }.create().show()
+                    }.setOnDismissListener {}.create().show()
             }
         }
         holder.mDeadline.text = getDeadlineText(info.deadline,info.status)

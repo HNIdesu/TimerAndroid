@@ -1,52 +1,49 @@
 package com.hnidesu.timer
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.IBinder
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.adapter.AppListAdapter
 import com.hnidesu.timer.adapter.AppListAdapter.TaskOperationListener
-import com.hnidesu.timer.adapter.AppListAdapter.UpdateOption
 import com.hnidesu.timer.component.AppItem
+import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.database.AppRecordEntity
-import com.hnidesu.timer.eventbus.AddTaskEvent
-import com.hnidesu.timer.eventbus.CancelTaskEvent
-import com.hnidesu.timer.eventbus.ListTaskEvent
-import com.hnidesu.timer.eventbus.TaskStatusEvent
 import com.hnidesu.timer.manager.DatabaseManager
 import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.service.TimerService
+import com.hnidesu.timer.util.Timer
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import java.util.Timer
-import java.util.TimerTask
+import kotlin.system.exitProcess
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ServiceConnection {
     private val mApplicationCollection = HashMap<String?, AppItem>()
     private val mApplicationList: MutableList<AppItem> = arrayListOf()
-    private var mTimer:Timer?=null
+    private lateinit var mTimer: Timer
     private var mViewHolder: ViewHolder? = null
 
     private fun loadApplicationList(includeSystemApps: Boolean = false) {
         val pm = packageManager
-        val recordMapTask=CoroutineScope(Dispatchers.IO).async {
-            val result=mutableMapOf<String,Long>()
+        val recordMapTask = CoroutineScope(Dispatchers.IO).async {
+            val result = mutableMapOf<String, Long>()
             DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao().getAll().forEach {
-                result[it.packageName]=it.lastAccessTime
+                result[it.packageName] = it.lastAccessTime
             }
             return@async result
         }
         for (info in pm.getInstalledApplications(0)) {
-            if(!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM)!=0)
+            if (!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
                 continue
             val packageInfo = try {
                 pm.getPackageInfo(info.packageName!!, 0)
@@ -58,55 +55,31 @@ class MainActivity : AppCompatActivity() {
                 info.packageName,
                 pm.getApplicationLabel(info).toString(),
                 version,
-                -1,
-                AppItem.Status.None
+                0,
+                TaskStatus.None
             )
             mApplicationCollection[info.packageName] = item
             mApplicationList.add(item)
         }
-        val recordMap=runBlocking {
+        val recordMap = runBlocking {
             recordMapTask.await()
         }
         mApplicationList.sortByDescending {
-            recordMap.get(it.packageName)?:0
+            recordMap[it.packageName] ?: 0
         }
     }
 
-    private fun enableTimer(){
-        if(mTimer!=null)
-            return
-        mTimer=Timer().also {
-            it.schedule(object:TimerTask() {
-                override fun run() {
-                    EventBus.getDefault().post(ListTaskEvent())
-                }
-            }, 0L, 500L)
-        }
-    }
-
-    private fun disableTimer(){
-        if(mTimer!=null){
-            mTimer?.cancel()
-            mTimer=null
-        }
-    }
-
-    override fun onPause() {
+    override fun onStop() {
         super.onPause()
-        disableTimer()
+        unbindService(this)
     }
 
-    override fun onResume() {
+    override fun onStart() {
         super.onResume()
-        enableTimer()
+        bindService(Intent(this, TimerService::class.java), this, BIND_AUTO_CREATE)
     }
 
-    public override fun onDestroy() {
-        super.onDestroy()
-        EventBus.getDefault().unregister(this)
-    }
-
-    inner class ViewHolder(listener: TaskOperationListener?) {
+    private inner class ViewHolder(listener: TaskOperationListener?) {
         val mAppListAdapter: AppListAdapter =
             AppListAdapter(this@MainActivity, listener!!)
         private val mApplicationListRecyclerView: RecyclerView = findViewById(R.id.app_list)
@@ -116,73 +89,76 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        mTimer.cancel()
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mTimer = Timer()
         setContentView(R.layout.activity_main)
         if (!Shell.getShell().isRoot) {
             Toast.makeText(this, R.string.the_device_is_not_rooted, Toast.LENGTH_SHORT).show()
-            System.exit(0)
+            exitProcess(0)
         }
         loadApplicationList()
         val serviceIntent = Intent(this, TimerService::class.java)
         startService(serviceIntent)
-        val recordDao=DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao()
+        val recordDao = DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao()
         val viewHolder = ViewHolder(object : TaskOperationListener {
             override fun onAddTask(packageName: String, timeout: Long): Boolean {
-                EventBus.getDefault().post(AddTaskEvent(packageName, timeout))
-                SettingManager.getDefault(this@MainActivity).edit().putLong("timeout",timeout).apply()
+                val intent = Intent(this@MainActivity, TimerService::class.java)
+                intent.putExtra("command", "addTask")
+                intent.putExtra("packageName", packageName)
+                intent.putExtra("shutdownDelay", timeout * 1000)
+                startService(intent)
+                SettingManager.getDefault(this@MainActivity).edit().putLong("timeout", timeout)
+                    .apply()
                 CoroutineScope(Dispatchers.IO).launch {
-                    val entity=AppRecordEntity(packageName,System.currentTimeMillis())
+                    val entity = AppRecordEntity(packageName, System.currentTimeMillis())
                     recordDao.insertOrUpdate(entity)
                 }
                 return true
             }
+
             override fun onCancelTask(packageName: String): Boolean {
-                EventBus.getDefault().post(CancelTaskEvent(packageName))
+                val intent = Intent(this@MainActivity, TimerService::class.java)
+                intent.putExtra("command", "cancelTask")
+                intent.putExtra("packageName", packageName)
+                startService(intent)
                 return true
             }
         })
         this.mViewHolder = viewHolder
         viewHolder.bindViews()
-        mViewHolder!!.mAppListAdapter.setList(this.mApplicationList)
-        EventBus.getDefault().register(this)
+        viewHolder.mAppListAdapter.setList(this.mApplicationList)
     }
 
-    @Subscribe(threadMode = org.greenrobot.eventbus.ThreadMode.MAIN)
-    fun onMessageEvent(event: Any?) {
-        when(event){
-            is TaskStatusEvent->{
-                val item = mApplicationCollection[event.packageName]!!
-                when(event.status){
-                    TaskStatusEvent.Status.Running->{
-                        item.deadline = event.endTimeMs
-                        item.status=AppItem.Status.Running
-                        mViewHolder!!.mAppListAdapter.updateItem(
-                            item, listOf(UpdateOption.UpdateDeadline)
-                        )
-                    }
-                    TaskStatusEvent.Status.Canceled->{
-                        item.deadline = -1
-                        item.status=AppItem.Status.Canceled
-                        mViewHolder!!.mAppListAdapter.updateItem(
-                            item, listOf(UpdateOption.UpdateDeadline)
-                        )
-                    }
-                    TaskStatusEvent.Status.Completed->{
-                        item.deadline = -1
-                        item.status=AppItem.Status.Completed
-                        mViewHolder!!.mAppListAdapter.updateItem(
-                            item, listOf(UpdateOption.UpdateDeadline))
-                    }
-                    TaskStatusEvent.Status.Error-> {
-                        item.deadline = -1
-                        item.status = AppItem.Status.Error
-                        mViewHolder!!.mAppListAdapter.updateItem(
-                            item, listOf(UpdateOption.UpdateDeadline)
-                        )
+    override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+        mTimer.schedule(500){
+            val adapter = mViewHolder?.mAppListAdapter ?: return@schedule
+            if (binder is TimerService.LocalBinder) {
+                val service = binder.service
+                service.getTaskList().get().forEach {
+                    val item = mApplicationCollection[it.packageName]
+                    if (item != null) {
+                        item.deadline = it.endTimeMs
+                        item.status = it.status
+                        runOnUiThread {
+                            adapter.updateItem(
+                                item,
+                                listOf(AppListAdapter.UpdateOption.UpdateDeadline)
+                            )
+                        }
                     }
                 }
             }
         }
+
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        mTimer.cancel()
     }
 }
