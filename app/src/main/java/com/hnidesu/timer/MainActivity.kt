@@ -25,7 +25,6 @@ import com.hnidesu.timer.util.Timer
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
@@ -38,6 +37,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
 
     private fun loadApplicationList(includeSystemApps: Boolean = false) {
         val pm = packageManager
+        mApplicationCollection.clear()
         for (info in pm.getInstalledApplications(0)) {
             if (!includeSystemApps && (info.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
                 continue
