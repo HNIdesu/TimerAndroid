@@ -67,12 +67,12 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     }
 
     override fun onStop() {
-        super.onPause()
+        super.onStop()
         unbindService(this)
     }
 
     override fun onStart() {
-        super.onResume()
+        super.onStart()
         bindService(Intent(this, TimerService::class.java), this, BIND_AUTO_CREATE)
     }
 
