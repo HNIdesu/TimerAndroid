@@ -2,7 +2,6 @@
 agp = "8.6.0"
 shizuku = "13.1.0"
 core = "6.0.0"
-eventbus = "3.3.1"
 kotlin = "1.9.25"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -20,7 +19,6 @@ preferenceKtx = "1.2.1"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 core = { module = "com.github.topjohnwu.libsu:core", version.ref = "core" }
-eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

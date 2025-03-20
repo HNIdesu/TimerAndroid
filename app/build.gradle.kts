@@ -53,7 +53,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.core)
     implementation(libs.numberslidingpicker)
-    implementation(libs.eventbus)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
