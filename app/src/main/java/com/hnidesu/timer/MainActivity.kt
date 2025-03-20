@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.activity.SettingsActivity
@@ -22,11 +21,11 @@ import com.hnidesu.timer.manager.DatabaseManager
 import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.service.TimerService
 import com.hnidesu.timer.util.Timer
-import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
 class MainActivity : AppCompatActivity(), ServiceConnection {
@@ -105,14 +104,21 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         return true
     }
 
+    private fun checkPermission(){
+        if(Shizuku.isPreV11())return
+        if(Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED){
+            return
+        }else if(Shizuku.shouldShowRequestPermissionRationale())
+            return
+        else
+            Shizuku.requestPermission(1)
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        checkPermission()
         mTimer = Timer()
         setContentView(R.layout.activity_main)
-        if (!Shell.getShell().isRoot) {
-            Toast.makeText(this, R.string.the_device_is_not_rooted, Toast.LENGTH_SHORT).show()
-            exitProcess(0)
-        }
         startService(Intent(this, TimerService::class.java))
         val recordDao = DatabaseManager.getMyDatabase(this@MainActivity).getAppRecordDao()
         val viewHolder = ViewHolder(object : TaskOperationListener {

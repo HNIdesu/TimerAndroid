@@ -12,7 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.component.TimerTask
 import com.hnidesu.timer.manager.SettingManager
-import com.topjohnwu.superuser.Shell
+import com.hnidesu.timer.shell.ShellManager
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -88,7 +88,11 @@ class TimerService : Service() {
                 endTimeMs = timeToStop,
                 scheduledFuture = mScheduledExecutorService.schedule(
                     {
-                        Shell.cmd("am force-stop $packageName").exec()
+                        ShellManager.getShell()?.execute(
+                            arrayOf(
+                                "am", "force-stop", packageName
+                            )
+                        )
                         mWorkingExecutorService.execute {
                             mTaskList[packageName]?.status = TaskStatus.Completed
                             checkAllTasksCompleted()
