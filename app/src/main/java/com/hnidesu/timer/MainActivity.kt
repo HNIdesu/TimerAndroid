@@ -105,13 +105,18 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
     }
 
     private fun checkPermission(){
-        if(Shizuku.isPreV11())return
-        if(Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED){
-            return
-        }else if(Shizuku.shouldShowRequestPermissionRationale())
-            return
-        else
-            Shizuku.requestPermission(1)
+        try{
+            if(Shizuku.isPreV11())return
+            if(Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED){
+                return
+            }else if(Shizuku.shouldShowRequestPermissionRationale())
+                return
+            else
+                Shizuku.requestPermission(1)
+        }catch (ex:Exception){
+            ex.printStackTrace()
+        }
+
     }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
