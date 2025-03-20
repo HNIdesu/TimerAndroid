@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.hnidesu.timer"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 34
         versionCode = 3
         versionName = "1.2.0"
@@ -27,13 +27,14 @@ android {
             )
         }
     }
+
+    buildFeatures {
+        viewBinding = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    viewBinding {
-        enable = true
     }
 
     kotlinOptions {
@@ -57,4 +58,6 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.picasso)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 }

@@ -1,5 +1,6 @@
 [versions]
 agp = "8.6.0"
+shizuku = "13.1.0"
 core = "6.0.0"
 eventbus = "3.3.1"
 kotlin = "1.9.25"
@@ -32,6 +33,8 @@ numberslidingpicker = { module = "com.github.sephiroth74:NumberSlidingPicker", v
 picasso = { module = "com.squareup.picasso:picasso", version.ref = "picasso" }
 androidx-preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
