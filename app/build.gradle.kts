@@ -51,7 +51,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation(libs.core)
     implementation(libs.numberslidingpicker)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
@@ -59,4 +58,5 @@ dependencies {
     implementation(libs.picasso)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    implementation(libs.libsu.core)
 }

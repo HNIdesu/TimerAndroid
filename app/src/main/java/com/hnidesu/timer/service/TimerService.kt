@@ -11,7 +11,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.component.TimerTask
-import com.hnidesu.timer.manager.SettingManager
+import com.hnidesu.timer.manager.AppPrefManager
 import com.hnidesu.timer.shell.ShellManager
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -30,8 +30,7 @@ class TimerService : Service() {
     private lateinit var mScheduledExecutorService: ScheduledExecutorService
 
     private fun checkAllTasksCompleted() {
-        val autoShutdown = SettingManager.getDefault(this).getBoolean("auto_shutdown", false)
-        if (!autoShutdown) return
+        if (!AppPrefManager.getAutoShutdown()) return
         mWorkingExecutorService.execute {
             val isAllTasksCompleted = mTaskList.values.all {
                 it.status == TaskStatus.Completed || it.status == TaskStatus.Canceled

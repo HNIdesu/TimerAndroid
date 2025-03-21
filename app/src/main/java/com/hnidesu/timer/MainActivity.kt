@@ -17,10 +17,11 @@ import com.hnidesu.timer.adapter.AppListAdapter.TaskOperationListener
 import com.hnidesu.timer.component.AppItem
 import com.hnidesu.timer.component.TaskStatus
 import com.hnidesu.timer.database.AppRecordEntity
+import com.hnidesu.timer.manager.AppPrefManager
 import com.hnidesu.timer.manager.DatabaseManager
-import com.hnidesu.timer.manager.SettingManager
 import com.hnidesu.timer.service.TimerService
 import com.hnidesu.timer.util.Timer
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,11 +117,11 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         }catch (ex:Exception){
             ex.printStackTrace()
         }
-
     }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Shell.getShell().isRoot
         checkPermission()
         mTimer = Timer()
         setContentView(R.layout.activity_main)
@@ -133,8 +134,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
                 intent.putExtra("packageName", packageName)
                 intent.putExtra("shutdownDelay", timeout * 1000)
                 startService(intent)
-                SettingManager.getDefault(this@MainActivity).edit().putLong("timeout", timeout)
-                    .apply()
+                AppPrefManager.setTimeout(timeout)
                 CoroutineScope(Dispatchers.IO).launch {
                     val entity = AppRecordEntity(packageName, System.currentTimeMillis())
                     recordDao.insertOrUpdate(entity)
@@ -152,12 +152,12 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
         })
         this.mViewHolder = viewHolder
         viewHolder.bindViews()
-        mIncludeSystemApps = SettingManager.getDefault(this).getBoolean("show_system_apps",false)
+        mIncludeSystemApps = AppPrefManager.getShowSystemApps()
         loadApplicationList(includeSystemApps = mIncludeSystemApps)
     }
 
     override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-        val includeSystemApps = SettingManager.getDefault(this).getBoolean("show_system_apps",false)
+        val includeSystemApps = AppPrefManager.getShowSystemApps()
         if (includeSystemApps != mIncludeSystemApps){
             loadApplicationList(includeSystemApps = includeSystemApps)
             mIncludeSystemApps = includeSystemApps

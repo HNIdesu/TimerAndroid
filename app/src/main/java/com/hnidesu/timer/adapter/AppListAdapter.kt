@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.hnidesu.timer.R
 import com.hnidesu.timer.component.AppItem
 import com.hnidesu.timer.component.TaskStatus
-import com.hnidesu.timer.manager.SettingManager
+import com.hnidesu.timer.manager.AppPrefManager
 import com.hnidesu.timer.menu.SetTimerDialog
 import com.hnidesu.timer.menu.SetTimerDialog.SetTimerListener
 import com.squareup.picasso.Picasso
@@ -181,7 +181,7 @@ class AppListAdapter(
                         }
                     }
                 ).also {
-                    it.timeout= SettingManager.getDefault(mContext).getLong("timeout",300)
+                    it.timeout= AppPrefManager.getTimeout()
                 }
                 dialog.show()
             }else{
