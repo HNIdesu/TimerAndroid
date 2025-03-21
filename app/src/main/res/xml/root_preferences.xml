@@ -1,4 +1,17 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ListPreference
+        app:key="shell_provider"
+        app:title="@string/shell_provider"
+        app:defaultValue="shizuku"
+        app:summary="@string/shell_provider_summary"
+        app:entries="@array/shell_providers"
+        app:entryValues="@array/shell_provider_values"
+        app:iconSpaceReserved="false"/>
+    <Preference
+        app:key="test_permission"
+        app:iconSpaceReserved="false"
+        app:title="@string/test_permission"
+        app:summary="@string/test_permission_summary" />
     <EditTextPreference
         app:key="su_command"
         app:title="@string/custom_su_command"

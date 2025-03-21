@@ -24,4 +24,10 @@ object AppPrefManager {
     fun setTimeout(timeout:Long){
         mShedPreferences.edit().putLong("timeout", timeout).apply()
     }
+    fun getShellProvider():String{
+        return mShedPreferences.getString("shell_provider", "shizuku")!!
+    }
+    fun setShellProvider(shellType:String){
+        mShedPreferences.edit().putString("shell_provider", shellType).apply()
+    }
 }

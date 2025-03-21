@@ -107,13 +107,21 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
 
     private fun checkPermission(){
         try{
-            if(Shizuku.isPreV11())return
-            if(Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED){
-                return
-            }else if(Shizuku.shouldShowRequestPermissionRationale())
-                return
-            else
-                Shizuku.requestPermission(1)
+            when(AppPrefManager.getShellProvider()){
+                "shizuku"->{
+                    if(Shizuku.isPreV11())return
+                    if(Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED){
+                        return
+                    }else if(Shizuku.shouldShowRequestPermissionRationale())
+                        return
+                    else
+                        Shizuku.requestPermission(1)
+                }
+                "magisk"->{
+                    Shell.getShell()
+                }
+            }
+
         }catch (ex:Exception){
             ex.printStackTrace()
         }
@@ -121,7 +129,6 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Shell.getShell().isRoot
         checkPermission()
         mTimer = Timer()
         setContentView(R.layout.activity_main)

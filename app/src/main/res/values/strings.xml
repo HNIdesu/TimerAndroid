@@ -34,4 +34,15 @@
     <string name="show_system_apps_summary">在应用列表显示系统应用</string>
     <string name="custom_su_command">自定义su命令</string>
     <string name="custom_su_command_summary">设置自定义的su命令，重启有效</string>
+    <string name="shell_provider_summary">选择用于关闭应用的权限提供器，重启有效</string>
+    <string name="shell_provider">权限提供器</string>
+    <string name="test_permission">测试权限</string>
+    <string name="test_permission_summary">点击测试是否成功授权权限</string>
+    <string name="unknown_shell_provider">未知的权限提供器</string>
+    <string name="permission_granted">授权成功</string>
+    <string name="permission_denied">授权失败</string>
+    <string-array name="shell_providers">
+        <item>Magisk</item>
+        <item>Shizuku</item>
+    </string-array>
 </resources>
