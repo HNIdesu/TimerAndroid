@@ -207,6 +207,6 @@ class AppListAdapter(
         for (i in 0 until len) {
             mIndexList[mApplicationList!![i].packageName] = i
         }
-        notifyItemRangeChanged(0, mApplicationList!!.size)
+        notifyDataSetChanged()
     }
 }
