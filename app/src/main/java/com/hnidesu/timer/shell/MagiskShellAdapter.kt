@@ -4,6 +4,6 @@ import com.topjohnwu.superuser.Shell
 
 class MagiskShellAdapter:IShell {
     override fun execute(cmd: Array<String>) {
-        Shell.cmd(*cmd).exec()
+        Shell.cmd(cmd.joinToString(" ")).exec()
     }
 }
