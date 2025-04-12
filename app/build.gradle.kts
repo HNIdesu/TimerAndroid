@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.hnidesu.timer"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.hnidesu.timer"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 4
         versionName = "1.3.0"
 
