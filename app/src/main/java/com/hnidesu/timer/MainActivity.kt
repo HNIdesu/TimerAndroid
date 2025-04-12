@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection {
             } catch (e: PackageManager.NameNotFoundException) {
                 continue
             }
-            val version = packageInfo.versionName
+            val version = packageInfo.versionName ?:""
             val item = AppItem(
                 info.packageName,
                 pm.getApplicationLabel(info).toString(),
